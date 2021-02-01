@@ -350,3 +350,159 @@ Buffer Overflows ::
 		    print("ERROR!")
 		s.close()
 
+Information Gathering ::
+
+	Infrastructures:
+
+		goal is to retrieve:
+			- Domains
+			- Mail servers
+			- Netblocks / IP Adresses
+			- ISP's used
+			- etc.
+
+		Scope of engagement:
+
+			SoE(Scope of engagement) is set by the customers needs:
+
+				- Name of the organization - which is considered a full scope test
+				- IP addresses / Netblocks to test
+
+				Full Scope:
+
+					DNS -> Dns enumeration techniques, whois
+					IP  -> Reverse lookup, MSN Bing
+
+				Netblocks/IP's:
+
+					Live hosts -> Further DNS
+					Further DNS
+
+				*whois normally runs on port 43
+
+		DNS Records:
+
+			Resource Record -> TTL, Record class -> SDA, NS, A, PTR, CNAME, MX
+
+			Resource Record - a resource record starts with a domain name usually a fully qualified domain name(FQDN, e.g. .www.google.com),
+
+			TTL - Time-To-Live > recorded in seconds, defaults to the minimum value determinted in the SOA(Start of authority) record.
+
+			Record Class - Internet, Hesoid, Chaos
+
+			SOA - Start of Authority - Indicates the beginning of a zone and it should occur first in a zone file.
+			There could only be one SOA record per zone.
+			Defines certain values for the zone such as serial number and various expiration timeouts.
+
+			NS - Name Server - defines an authoritative name server for a zone.
+			Defines and delegates authority to a name server for a child zone.
+			NS records are the glue that binds the distributed database together.
+
+			A - Address - A record is a hostname to an IP address.
+			Zones with A records are called "forward" zones.
+
+			PTR - Pointer - the PTR record maps an IP address to a hostname.
+			Zones with PTR records are called "reverse" zones.
+
+			CNAME - the CNAME record maps an alias to an A record hostname
+
+			MX - Mail Exchange - the MX record specifies a host that will accept mail on behalf of a given host.
+			The host has an associated priority value, a single host may have multiple MX records.
+			The records for a specified host make up a prioritized list.
+
+
+			DNS Lookup:
+
+				nslookup target.com
+
+				Reverse lookup -> nslookup -type=PTR <IP>
+
+				MX lookup      -> nslookup -type=MX <IP>
+
+				Zone Transfers:
+
+					Are usually a misconfiguration of the remote DNS server, they should be enabled only for trusted IP addresses.
+					When zone transfers are enabled, we can enumerate the entire DNS record for that zone.
+					Includes all the sub-domains of our domain (A Records).
+
+					How it works:
+
+						Starting off with a NS lookup -> nslookup -type=NS target.com
+
+						then:
+
+							nslookup
+							server <NS Domain>
+							ls -d target.com
+
+					In Linux:
+
+						dig target.com 
+
+						Reverse lookup -> dig <IP> PTR
+
+						MX Lookup      -> dig <IP> MX
+
+						NS Lookup      -> dig <IP> NS
+
+						Zone Transfer:
+
+							dig axfr @target.com target.com
+
+							dig +nocmd target.com AXFR +noall +answer @target.com
+
+							* dig @<DOMAIN IP> target.com -t AXFR +nocookie
+
+
+				determine subdomains:
+
+					Reverse lookup from NS server, or lookup in Google/Bing -> ip:<ip> (in search)
+
+					-Domaintools
+					-DNSlytics
+					-Networkappers
+					-Robtex
+
+			Netblocks and AS:
+
+				Netblocks are basically subnets.
+				AS - autonomous system - is made of one or more netblocks under the same administrative control.
+				Big corporations and ISP's have an autonomous system, while smaller companies will barely have a netblock.
+
+				nmap -> --disable-arp-ping / --send-ip
+				nmap -> -PS flag to TCP scan to not generate too much traffic = workaround for firewalls
+
+
+				futher dns:
+
+					DNS TCP SCAN - nmap -sS -p53 <netblock>
+
+					DNS UDP SCAN - nmap -sU -p53 <netblock>
+
+
+			fierce -dns target.com
+			fierce -dns target.com -dnsserver ns1.target.com
+			dnsmap target.com
+			dnsrecon -d target.com
+
+
+
+	fping, hping:
+
+		fping -e - time to send and recieve back the packer (IDS/IPS detection)
+
+		hping3 -2 - send UDP packet
+		hping3 -S - Host Discovery
+		hping3 -p - SYN/ACK
+		hping3 -F - FYN packet
+		hping3 -U - urgent
+		hping3 -X - XMAS package
+		hping3 -Y - YMAS package
+		hping3 -1 192.168.1.x --random-dest -I eth0 - check if subnet alive
+
+
+	Tools:
+
+		DnsDumpster.com
+		dnsenum - https://github.com/fwaeytens/dnsenum
+		dnsenum --subfile file.txt -v -f /usr/share/dnsenum/.txt -u a -r target.com - store subdomains in file.txt
