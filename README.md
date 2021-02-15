@@ -1,7 +1,3 @@
-# eCPPTNotes
-
-## eCPPT ##
-
 ## eCPPT ##
 
 Architecture Fundamentals ::
@@ -518,6 +514,9 @@ Scanning::
 		nmap --randomize-hosts - random hosts scan order
 
 
+		netdiscover -i tap0(eth/wlan...) -S -L -f -r <ip>/<subnet>
+		arp-scan -I tap0(eth/wlan...) <ip>/<subnet>
+
 
 	Tools:
 
@@ -546,6 +545,7 @@ Enumeration ::
 			BF - Network Monitor Application
 
 		nbtstat -A <target IP> - information gathering (Windows)
+		nmblookup -A <target IP> - information gathering (Linux)
 		nbtscan -v <target IP> - information gathering (Linux)
 		nbtscan -v <IP>/subnet - scan entire subnet
 		net view <IP> - list domains, computers, resources shared by a computer on the network
@@ -558,6 +558,15 @@ Enumeration ::
 		enum4linux <IP>
 		rpcclient -N -U "" <IP> - if establishes then "help"
 		rpcclient > 'enum' for useful commands
+
+		msf> use auxiliary/scanner/smb/smb_login
+
+		nmap --script=smb-enum-users -p 445 <IP> --script-args=smbuser=<username>,smbpass=<password>
+
+		msf> impersonate token:
+			use incognito
+			list_tokens -u
+			impersonate_token <domain>\\<username>
 
 
 	SNMP:
@@ -573,6 +582,28 @@ Enumeration ::
 		snmpset:
 
 			snmpset -v 2c <ip> -c public (OID) s(for STRING) new@new.com
-			
 
+
+		Finding:
+
+			1. find 139/445 open
+			2. scan for 161 - nmap -sU -p 161 <ip>
+
+		Finding communities:
+
+			onesixtyone - onesixtyone -c /usr/share/doc/onesixtyone/dict.txt <ip>
+			-or-
+			nmap -vv -sV -sU -Pn -p 161,162 --script=snmp-netstat,snmp-processes <ip>
+			nmap -vv -sV -sU -Pn -p 161,162 --script=snmp-* <ip>  (FIND ALL)
+
+
+	Scan network from within a host:
+		run autoroute -s <IP>/Subnet
+		^Z
+		use <IP>canner/portscan/tcp(or udp)
+
+
+	Hydra brute SMB:
+		hydra -L users.txt -P /usr/share/john/password.lst <IP> smb -f -V
+	
 
