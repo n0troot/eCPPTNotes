@@ -1,5 +1,6 @@
 ## eCPPT ##
 
+
 Architecture Fundamentals ::
 	
 	CPU:
@@ -606,4 +607,87 @@ Enumeration ::
 	Hydra brute SMB:
 		hydra -L users.txt -P /usr/share/john/password.lst <IP> smb -f -V
 	
+
+
+Sniffing & MITM::
+	
+	Passive sniffing - listening to packets on the network in order to gather sensitive information, using Wireshark for instance.
+
+	Active sniffing - actively performing malicious operations such as MAC Spoofing and ARP Poisoning on the network in order to redirect the traffic.
+	downside is that it is not a stealthy technique.
+
+	MAC Spoofing - meant to stress the switch and feel the CAM table. the CAM table keeps all the info required to forward frames to the correct port.
+	<MAC - port - TTL>
+	when the space is filled with fake MAC addresses, the switch can't learn new MACs. then the only way to keep the network alive is to forward the
+	frames meant to be delivered to the unknown MAC address on all of the ports on the switch, thus making it fail open, or act like a hub.
+
+	ARP Poisoning - probably the stealthiest of the active sniffing techniques. does not bring down switch functionality, instead it exploits
+	the concept of traffic redirection. one of the most used attacks to perform a MITM attack.
+	By exploiting the network via ARP poisoning, the attacker is able to redirect the traffic of the selected victim to a specific machine.
+	Doing this enables the attacker to not only monitor, but also modify the traffic.
+	can also be used to DoS the target. 
+
+
+	ARP:
+
+		Address resolution protocol. Matches IP addresses(Layer 3) with MACs(Layer 2).
+
+		ARP Tables:
+			when HOST A creates a packet destined to HOST B, before it's delivered HOST A searches it's ARP table... if HOST B is found in the table
+			the correspondent MAC address is inserted as the Layer 2 destination address into the protocol frame.
+			If the entry isn't found in the ARP table, an ARP request is sent on the LAN. the request contains the following values in the desination
+			fields of the IP-Ethernet packets:
+			Source IP: IP_A
+			Source MAC: MAC_A
+			Destination IP: IP_B
+			Destination MAC: FF:FF:FF:FF:FF:FF
+				* the F's indicates a broadcast message
+			the nodes which IP address do not match with the destination IP_B will drop the packet.
+			the node which matches will respond with an ARP reply to the sender, with the MAC.
+			then it is inserted into the ARP table for future use.
+
+	Tools :
+
+		dsniff:
+
+			active/passive sniffing, MITM attacks, monitoring the network for data such as passwords, emails, files etc.
+
+			uses:
+
+				Passive - filesnarf, mailsnarf, msgsnarf, urlsnarf, webspy
+				Active - arpspoof, dnsspoof, macof
+				MITM - sshmitm, webmitm
+
+		TCPdump(-or- windump for windows):
+
+			tcpdump -i eth0(wlan0,tap0...)
+			needs creds decoding from base64 - echo <base64> | base64 -d
+
+			tcpdump -D - shows available interfaces for sniffing
+			tcpdump -i eth0(wlan0,tap0...) - sniff traffic on interface
+			tcpdump -v - verbose mode
+			tcpdump -q - quiet option
+			tcpdump -i eth0 host www.website.com - show only traffic between host and website
+			tcpdump -i eth0 src <IP> dst <IP> - show only traffic between source IP and destination IP
+			tcpdump -F - import to file
+			tcpdump -c <num of packets> - stop capturing after a certain amount of packets captured
+
+
+	LLMNR/NBT-NS Poisoning:
+
+		1. HOST A requests an SMB share, but has a typo in the SMB address he's trying to access
+		2. since it can't be resolved by the DNS, HOST A falls back to LLMNR/NBT-NS broadcast msg asking the LAN for the ip address of the typo share
+		3. HOST B responds to this message claiming to be the typo share system
+		4. HOST A complies and sends HOST B their username and NTLMv1/v2 hash
+
+		Responder:
+
+			SMB-Signing check - runfinger.py -i <target>
+
+			modify responder.conf - SMB=OFF, HTTP=OFF
+
+			responder -I eth0(wlan0,tap0...) --lm
+			+
+			multirelay.py -t <target> -u ALL
+			
 
